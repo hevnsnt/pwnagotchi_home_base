@@ -1,16 +1,21 @@
 # home-base watches for a pre-defined home network to be in range, then pauses pwning to
 # allow for internet connectivity tasks to be carried out. Once out of range, pwning is resumed
 # Inspiration and some methodologies taken from @nagy_craig's "Educational-purposes-only" plugin
-# Install dependencies: apt update; apt install nmap macchanger
+# Install dependencies: apt update; apt install psutil
 import pwnagotchi.plugins as plugins
 import pwnagotchi
 import logging
 import subprocess
 import time
+import pip
+try:
+    __import__(psutil)
+except ImportError:
+    pip.main(['install', psutil])       
 
 class HomeBase(plugins.Plugin):
-    __author__ = '@troystauffer'
-    __version__ = '1.0.0'
+    __author__ = '@hevnsnt'
+    __version__ = '1.1.0'
     __license__ = 'GPL3'
     __description__ = 'Connects to home network for internet when available'
 
@@ -86,7 +91,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     _log('disabling monitor mode...')
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    # Runs this driver reload command again because sometimes it gets stuck the first time:
+    ##!!## Runs this driver reload command again because sometimes it gets stuck the first time:
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
     #_log('randomizing wlan0 MAC address prior to connecting...')
@@ -96,7 +101,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     _log('starting up wlan0 again...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(3)
-    # This command runs multiple times because it sometimes doesn't work the first time:
+    ##!!## This command runs multiple times because it sometimes doesn't work the first time:
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
     _log('setting wlan0 channel to match the target...')
