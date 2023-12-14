@@ -7,11 +7,7 @@ import pwnagotchi
 import logging
 import subprocess
 import time
-import pip
-try:
-    __import__(psutil)
-except ImportError:
-    pip.main(['install', psutil])       
+ 
 
 class HomeBase(plugins.Plugin):
     __author__ = '@hevnsnt'
@@ -23,6 +19,7 @@ class HomeBase(plugins.Plugin):
         self.ready = 0
         self.status = ''
         self.network = ''
+        self.last_connection_time = 0
 
     def on_loaded(self):
         for opt in ['ssid', 'password', 'minimum_signal_strength']:
@@ -61,9 +58,6 @@ class HomeBase(plugins.Plugin):
             ui.set('face', '乁(´ー｀)ㄏ')
             ui.set('face', '(◕‿‿◕)')
             ui.set('status', 'We\'re home! Pausing monitor mode ...')
-        #while self.status == 'scrambling_mac':
-            #ui.set('face', '(⌐■_■)')
-            #ui.set('status', 'Scrambling MAC address before connecting to %s ...' % self.network)
         while self.status == 'associating':
             ui.set('status', 'Greeting the AP and asking for an IP via DHCP ...')
             ui.set('face', '(◕‿◕ )')
@@ -73,8 +67,9 @@ class HomeBase(plugins.Plugin):
             ui.set('status', 'Home at last!')
         
     def on_epoch(self, agent, epoch, epoch_data):
-        if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig mon0'):
-            _restart_monitor_mode(self,agent)
+        if time.time() - self.last_connection_time >= 60 * 60:
+            if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig mon0'):
+                _restart_monitor_mode(self,agent)
 
 def _run(cmd):
     result = subprocess.run(cmd, shell=True, stdin=None, stderr=None, stdout=subprocess.PIPE, executable="/bin/bash")
@@ -94,10 +89,6 @@ def _connect_to_target_network(self, agent, network_name, channel):
     ##!!## Runs this driver reload command again because sometimes it gets stuck the first time:
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    #_log('randomizing wlan0 MAC address prior to connecting...')
-    #self.status = 'scrambling_mac'
-    #subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    #time.sleep(5)
     _log('starting up wlan0 again...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(3)
@@ -125,6 +116,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     time.sleep(5)
     self.status = 'associated'
     self.ready = 1
+    self.last_connection_time = time.time()
     _log('finished connecting to home wifi')
     
 def _restart_monitor_mode(self,agent):
@@ -146,4 +138,4 @@ def _restart_monitor_mode(self,agent):
     agent.next_epoch(self)
 
 def _log(message):
-    logging.info('[home_base] %s' % message)
+    logging.info('[#### - home_base] %s' % message)
