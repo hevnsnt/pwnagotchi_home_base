@@ -49,16 +49,16 @@ class HomeBase(plugins.Plugin):
             ui.set('face', '(ﺏ__ﺏ)')
             ui.set('status', 'Signal strength of %s is currently too low to connect ...' % self.network)
         while self.status == 'home_detected':
-            ui.set('face', '(◕‿‿◕)')
-            ui.set('face', '(ᵔ◡◡ᵔ)')
+            ui.set('face', '(✺◟( ͡° ᗢ ͡°) ◞✺)')
+            ui.set('face', '乁(´ー｀)ㄏ')
             ui.set('status', 'Found home network at %s ...' % self.network)
         while self.status == 'switching_mon_off':
+            ui.set('face', '乁(´ー｀)ㄏ')
             ui.set('face', '(◕‿‿◕)')
-            ui.set('face', '(ᵔ◡◡ᵔ)')
             ui.set('status', 'We\'re home! Pausing monitor mode ...')
-        while self.status == 'scrambling_mac':
-            ui.set('face', '(⌐■_■)')
-            ui.set('status', 'Scrambling MAC address before connecting to %s ...' % self.network)
+        #while self.status == 'scrambling_mac':
+            #ui.set('face', '(⌐■_■)')
+            #ui.set('status', 'Scrambling MAC address before connecting to %s ...' % self.network)
         while self.status == 'associating':
             ui.set('status', 'Greeting the AP and asking for an IP via DHCP ...')
             ui.set('face', '(◕‿◕ )')
@@ -89,10 +89,10 @@ def _connect_to_target_network(self, agent, network_name, channel):
     # Runs this driver reload command again because sometimes it gets stuck the first time:
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    _log('randomizing wlan0 MAC address prior to connecting...')
-    self.status = 'scrambling_mac'
-    subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    time.sleep(5)
+    #_log('randomizing wlan0 MAC address prior to connecting...')
+    #self.status = 'scrambling_mac'
+    #subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+    #time.sleep(5)
     _log('starting up wlan0 again...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(3)
@@ -130,9 +130,9 @@ def _restart_monitor_mode(self,agent):
     _log('reloading brcmfmac driver...')
     subprocess.run('modprobe --remove brcmfmac && modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    _log('randomizing MAC address of wlan0...')
-    subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    time.sleep(5)
+    #_log('randomizing MAC address of wlan0...')
+    #subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+    #time.sleep(5)
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     _log('starting monitor mode...')
     subprocess.run('iw phy "$(iw phy | head -1 | cut -d" " -f2)" interface add mon0 type monitor && ifconfig mon0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
