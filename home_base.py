@@ -1,16 +1,16 @@
 # home-base watches for a pre-defined home network to be in range, then pauses pwning to
 # allow for internet connectivity tasks to be carried out. Once out of range, pwning is resumed
-# Inspiration and some methodologies taken from @nagy_craig's "Educational-purposes-only" plugin
-# Install dependencies: apt update; apt install psutil
+# Inspiration and some methodologies taken from @troystauffer's "HomeBase" plugin
+
 import pwnagotchi.plugins as plugins
 import pwnagotchi
 import logging
 import subprocess
 import time
- 
+import socket
 
 class HomeBase(plugins.Plugin):
-    __author__ = '@hevnsnt'
+    __author__ = '@troystauffer'
     __version__ = '1.1.0'
     __license__ = 'GPL3'
     __description__ = 'Connects to home network for internet when available'
@@ -19,7 +19,6 @@ class HomeBase(plugins.Plugin):
         self.ready = 0
         self.status = ''
         self.network = ''
-        self.last_connection_time = 0
 
     def on_loaded(self):
         for opt in ['ssid', 'password', 'minimum_signal_strength']:
@@ -51,25 +50,32 @@ class HomeBase(plugins.Plugin):
             ui.set('face', '(ﺏ__ﺏ)')
             ui.set('status', 'Signal strength of %s is currently too low to connect ...' % self.network)
         while self.status == 'home_detected':
-            ui.set('face', '(✺◟( ͡° ᗢ ͡°) ◞✺)')
-            ui.set('face', '乁(´ー｀)ㄏ')
+            ui.set('face', '(◕‿‿◕)')
+            ui.set('face', '(ᵔ◡◡ᵔ)')
             ui.set('status', 'Found home network at %s ...' % self.network)
         while self.status == 'switching_mon_off':
-            ui.set('face', '乁(´ー｀)ㄏ')
             ui.set('face', '(◕‿‿◕)')
+            ui.set('face', '(ᵔ◡◡ᵔ)')
             ui.set('status', 'We\'re home! Pausing monitor mode ...')
+        while self.status == 'scrambling_mac':
+            ui.set('face', '(⌐■_■)')
+            ui.set('status', 'Scrambling MAC address before connecting to %s ...' % self.network)
         while self.status == 'associating':
             ui.set('status', 'Greeting the AP and asking for an IP via DHCP ...')
             ui.set('face', '(◕‿◕ )')
             ui.set('face', '( ◕‿◕)')
         if self.status == 'associated':
             ui.set('face', '(ᵔ◡◡ᵔ)')
-            ui.set('status', 'Home at last!')
+            if is_connected():
+                #ui.set('status', 'Home at last!')
+                ui.set('status', 'Home at Last! yummy internet')
+            else:
+                ui.set('status', 'Home at last! -No Internet)')
+
         
     def on_epoch(self, agent, epoch, epoch_data):
-        if time.time() - self.last_connection_time >= 60 * 60:
-            if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig mon0'):
-                _restart_monitor_mode(self,agent)
+        if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig mon0'):
+            _restart_monitor_mode(self,agent)
 
 def _run(cmd):
     result = subprocess.run(cmd, shell=True, stdin=None, stderr=None, stdout=subprocess.PIPE, executable="/bin/bash")
@@ -86,13 +92,13 @@ def _connect_to_target_network(self, agent, network_name, channel):
     _log('disabling monitor mode...')
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    ##!!## Runs this driver reload command again because sometimes it gets stuck the first time:
+    # Runs this driver reload command again because sometimes it gets stuck the first time:
     subprocess.run('modprobe --remove brcmfmac; modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    time.sleep(5)
+    time.sleep(5)    
     _log('starting up wlan0 again...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(3)
-    ##!!## This command runs multiple times because it sometimes doesn't work the first time:
+    # This command runs multiple times because it sometimes doesn't work the first time:
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
     _log('setting wlan0 channel to match the target...')
@@ -116,7 +122,6 @@ def _connect_to_target_network(self, agent, network_name, channel):
     time.sleep(5)
     self.status = 'associated'
     self.ready = 1
-    self.last_connection_time = time.time()
     _log('finished connecting to home wifi')
     
 def _restart_monitor_mode(self,agent):
@@ -127,9 +132,7 @@ def _restart_monitor_mode(self,agent):
     _log('reloading brcmfmac driver...')
     subprocess.run('modprobe --remove brcmfmac && modprobe brcmfmac', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     time.sleep(5)
-    #_log('randomizing MAC address of wlan0...')
-    #subprocess.run('macchanger -A wlan0', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
-    #time.sleep(5)
+
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     _log('starting monitor mode...')
     subprocess.run('iw phy "$(iw phy | head -1 | cut -d" " -f2)" interface add mon0 type monitor && ifconfig mon0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
@@ -138,4 +141,15 @@ def _restart_monitor_mode(self,agent):
     agent.next_epoch(self)
 
 def _log(message):
-    logging.info('[#### - home_base] %s' % message)
+    logging.info('[home_base] %s' % message)
+
+def is_connected():
+    try:
+        # connect to the host -- tells us if the host is actually
+        # reachable
+        socket.create_connection(("1.1.1.1", 53))
+        _log('We are connected to the internet')
+        return True
+    except OSError:
+        pass
+    return False
