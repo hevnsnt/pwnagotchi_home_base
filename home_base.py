@@ -21,6 +21,7 @@ class HomeBase(plugins.Plugin):
         self.network = ''
 
     def on_loaded(self):
+        for opt in ['ssid', 'password', 'minimum_signal_strength','country']:
             if opt not in self.options or (opt in self.options and self.options[opt] is None):
                 logging.error(f"[home_base] Option {opt} is not set.")
                 return
