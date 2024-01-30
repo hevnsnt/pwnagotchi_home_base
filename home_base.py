@@ -21,7 +21,6 @@ class HomeBase(plugins.Plugin):
         self.network = ''
 
     def on_loaded(self):
-        for opt in ['ssid', 'password', 'minimum_signal_strength']:
             if opt not in self.options or (opt in self.options and self.options[opt] is None):
                 logging.error(f"[home_base] Option {opt} is not set.")
                 return
@@ -109,6 +108,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     _log('writing to wpa_supplicant.conf file...')
     with open('/tmp/wpa_supplicant.conf', 'w') as wpa_supplicant_conf:
         wpa_supplicant_conf.write("ctrl_interface=DIR=/var/run/wpa_supplicant\nupdate_config=1\ncountry=GB\n\nnetwork={\n\tssid=\"%s\"\n\tpsk=\"%s\"\n}\n" % (network_name, self.options['password']))
+        wpa_supplicant_conf.write("ctrl_interface=DIR=/var/run/wpa_supplicant\nupdate_config=1\ncountry=self.options['country']\n\nnetwork={\n\tssid=\"%s\"\n\tpsk=\"%s\"\n}\n" % (network_name, self.options['password']))
     _log('starting wpa_supplicant background process...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     subprocess.run('wpa_supplicant -u -s -c /tmp/wpa_supplicant.conf -i wlan0 &', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
