@@ -26,6 +26,15 @@ class HomeBase(plugins.Plugin):
                 logging.error(f"[home_base] Option {opt} is not set.")
                 return
         _log("plugin loaded")
+
+        check = subprocess.run('/usr/bin/dpkg -l wpasupplicant | grep wpasupplicant | awk \'{print $2,$3}\'',stderr=None, executable="/bin/bash")
+        check = check.stdout.decode('utf-8').strip()
+        if check != "wpasupplicant <none>":
+            logging.info("wpa_supplicant: Found " + check)
+        else:
+            logging.warning("wpa_supplicant is not installed!")
+
+
         self.ready = 1
     
     def on_unfiltered_ap_list(self, agent, access_points):
