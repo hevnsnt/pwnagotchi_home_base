@@ -1,4 +1,4 @@
-forked from [troystauffer/home_base](https://github.com/troystauffer/home_base)
+forked from [hevnsnt/pwnagotchi_home_base](https://github.com/hevnsnt/pwnagotchi_home_base)
 
 Work in progress: DO NOT USE.
 
