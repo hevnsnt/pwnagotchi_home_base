@@ -6,5 +6,5 @@ Connects to the network specified in the config whenever it is within range by p
 
 ## Dependencies
 ```
-apt update; apt install nmap macchanger
+apt update; apt install wpasupplicant
 ```
