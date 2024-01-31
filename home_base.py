@@ -27,7 +27,7 @@ class HomeBase(plugins.Plugin):
                 return
         _log("plugin loaded")
 
-        check = subprocess.run('/usr/bin/dpkg -l wpasupplicant | grep wpasupplicant | awk \'{print $2,$3}\'',stderr=None, executable="/bin/bash")
+        check = subprocess.run('/usr/bin/dpkg -l wpasupplicant | grep wpasupplicant | awk \'{print $2,$3}\'', stderr=None, executable="/bin/bash", stdout=subprocess.PIPE)
         check = check.stdout.decode('utf-8').strip()
         if check != "wpasupplicant <none>":
             logging.info("wpa_supplicant: Found " + check)
