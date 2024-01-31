@@ -94,6 +94,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     self.network = network_name
     _log('sending command to Bettercap to stop using wlan0mon...')
     self.status = 'switching_mon_off'
+    agent.run(plugins.toggle_plugin('fix_services', enable=False))
     agent.run('wifi.recon off')
     _log('ensuring all wpa_supplicant processes are terminated...')
     subprocess.run('systemctl stop wpa_supplicant; killall wpa_supplicant', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
@@ -147,6 +148,7 @@ def _restart_monitor_mode(self,agent):
     subprocess.run('iw phy "$(iw phy | head -1 | cut -d" " -f2)" interface add wlan0mon type monitor && ifconfig wlan0mon up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     _log('telling Bettercap to resume wifi recon...')
     agent.run('wifi.recon on')
+    agent.run(plugins.toggle_plugin('fix_services', enable=True))
     agent.next_epoch(self)
 
 def _log(message):
