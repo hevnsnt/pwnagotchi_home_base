@@ -21,11 +21,20 @@ class HomeBase(plugins.Plugin):
         self.network = ''
 
     def on_loaded(self):
-        for opt in ['ssid', 'password', 'minimum_signal_strength']:
+        for opt in ['ssid', 'password', 'minimum_signal_strength','country']:
             if opt not in self.options or (opt in self.options and self.options[opt] is None):
                 logging.error(f"[home_base] Option {opt} is not set.")
                 return
         _log("plugin loaded")
+
+        check = subprocess.run('/usr/bin/dpkg -l wpasupplicant | grep wpasupplicant | awk \'{print $2,$3}\'', stderr=None, executable="/bin/bash", stdout=subprocess.PIPE)
+        check = check.stdout.decode('utf-8').strip()
+        if check != "wpasupplicant <none>":
+            logging.info("wpa_supplicant: Found " + check)
+        else:
+            logging.warning("wpa_supplicant is not installed!")
+
+
         self.ready = 1
     
     def on_unfiltered_ap_list(self, agent, access_points):
@@ -74,7 +83,7 @@ class HomeBase(plugins.Plugin):
 
         
     def on_epoch(self, agent, epoch, epoch_data):
-        if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig mon0'):
+        if "Not-Associated" in _run('iwconfig wlan0') and "Monitor" not in _run('iwconfig wlan0mon'):
             _restart_monitor_mode(self,agent)
 
 def _run(cmd):
@@ -83,8 +92,9 @@ def _run(cmd):
 
 def _connect_to_target_network(self, agent, network_name, channel):
     self.network = network_name
-    _log('sending command to Bettercap to stop using mon0...')
+    _log('sending command to Bettercap to stop using wlan0mon...')
     self.status = 'switching_mon_off'
+    agent.run(plugins.toggle_plugin('fix_services', enable=False))
     agent.run('wifi.recon off')
     _log('ensuring all wpa_supplicant processes are terminated...')
     subprocess.run('systemctl stop wpa_supplicant; killall wpa_supplicant', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
@@ -108,7 +118,7 @@ def _connect_to_target_network(self, agent, network_name, channel):
     time.sleep(5)
     _log('writing to wpa_supplicant.conf file...')
     with open('/tmp/wpa_supplicant.conf', 'w') as wpa_supplicant_conf:
-        wpa_supplicant_conf.write("ctrl_interface=DIR=/var/run/wpa_supplicant\nupdate_config=1\ncountry=GB\n\nnetwork={\n\tssid=\"%s\"\n\tpsk=\"%s\"\n}\n" % (network_name, self.options['password']))
+        wpa_supplicant_conf.write("ctrl_interface=DIR=/var/run/wpa_supplicant\nupdate_config=1\ncountry=\"%s\"\n\nnetwork={\n\tssid=\"%s\"\n\tpsk=\"%s\"\n}\n" % (self.options['country'], network_name, self.options['password']))
     _log('starting wpa_supplicant background process...')
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     subprocess.run('wpa_supplicant -u -s -c /tmp/wpa_supplicant.conf -i wlan0 &', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
@@ -135,9 +145,10 @@ def _restart_monitor_mode(self,agent):
 
     subprocess.run('ifconfig wlan0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     _log('starting monitor mode...')
-    subprocess.run('iw phy "$(iw phy | head -1 | cut -d" " -f2)" interface add mon0 type monitor && ifconfig mon0 up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
+    subprocess.run('iw phy "$(iw phy | head -1 | cut -d" " -f2)" interface add wlan0mon type monitor && ifconfig wlan0mon up', shell=True, stdin=None, stdout=open("/dev/null", "w"), stderr=None, executable="/bin/bash")
     _log('telling Bettercap to resume wifi recon...')
     agent.run('wifi.recon on')
+    agent.run(plugins.toggle_plugin('fix_services', enable=True))
     agent.next_epoch(self)
 
 def _log(message):
